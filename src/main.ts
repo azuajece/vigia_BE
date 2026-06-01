@@ -33,7 +33,7 @@ async function bootstrap() {
       origin: [
     'http://localhost:5173',
     'http://localhost:3000',
-    'https://azuajece.github.io/vigia'
+    'https://azuajece.github.io'
   ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
