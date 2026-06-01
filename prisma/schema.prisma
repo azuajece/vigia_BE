@@ -1,0 +1,165 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// =====================================================
+// 1. TABLA DE JUGADORES
+// =====================================================
+model Jugador {
+  id_jugador              Int                      @id @default(autoincrement())
+  cedula                  String                   @unique
+  nombre_apellido         String
+  categoria               String
+  status                  JugadorStatus            @default(NUEVO_INGRESO)
+  mes_ingreso             String?
+  fecha_egreso            DateTime?
+  torneo                  String
+  anio_ingreso            Int?
+  deuda_2025              Decimal                  @default(0)
+  fecha_registro          DateTime                 @default(now())
+  fecha_actualizacion     DateTime                 @updatedAt
+
+  // Relaciones
+  cuotas_conceptos        CuotaConcepto[]
+  cuotas_mensuales        CuotaMensualDetalle[]
+  ingresos                Ingreso[]
+
+  @@index([cedula])
+  @@index([categoria])
+  @@index([status])
+}
+
+enum JugadorStatus {
+  NUEVO_INGRESO
+  ACTIVO
+  INACTIVO
+}
+
+// =====================================================
+// 2. TABLA DE CONCEPTOS DE CUOTA
+// =====================================================
+model ConceptoCuota {
+  id_concepto             Int                      @id @default(autoincrement())
+  nombre_concepto         String                   @unique
+  descripcion             String?
+  tipo                    ConceptoTipo             @default(OTRO)
+  activo                  Boolean                  @default(true)
+  fecha_creacion          DateTime                 @default(now())
+
+  // Relaciones
+  cuotas_conceptos        CuotaConcepto[]
+  cuotas_mensuales        CuotaMensualDetalle[]
+
+  @@index([nombre_concepto])
+  @@map("conceptos_cuota")
+}
+
+enum ConceptoTipo {
+  INSCRIPCION
+  MENSUAL
+  UNIFORME
+  TORNEO
+  OTRO
+}
+
+// =====================================================
+// 3. TABLA DE CUOTAS POR CONCEPTO (Anuales)
+// =====================================================
+model CuotaConcepto {
+  id_cuota_concepto       Int                      @id @default(autoincrement())
+  id_jugador              Int
+  id_concepto             Int
+  anio                    Int
+  monto                   Decimal
+  pagado                  Boolean                  @default(false)
+  fecha_pago              DateTime?
+  fecha_registro          DateTime                 @default(now())
+
+  // Relaciones
+  jugador                 Jugador                  @relation(fields: [id_jugador], references: [id_jugador], onDelete: Cascade)
+  concepto                ConceptoCuota            @relation(fields: [id_concepto], references: [id_concepto])
+
+  @@unique([id_jugador, id_concepto, anio])
+  @@index([id_jugador])
+  @@index([id_concepto])
+  @@index([anio])
+  @@map("cuotas_conceptos")
+}
+
+// =====================================================
+// 4. TABLA DE CUOTAS MENSUALES DETALLADO
+// =====================================================
+model CuotaMensualDetalle {
+  id_cuota_mes            Int                      @id @default(autoincrement())
+  id_jugador              Int
+  id_concepto             Int
+  mes                     Int
+  anio                    Int
+  monto                   Decimal
+  pagado                  Boolean                  @default(false)
+  fecha_pago              DateTime?
+  fecha_registro          DateTime                 @default(now())
+
+  // Relaciones
+  jugador                 Jugador                  @relation(fields: [id_jugador], references: [id_jugador], onDelete: Cascade)
+  concepto                ConceptoCuota            @relation(fields: [id_concepto], references: [id_concepto])
+
+  @@unique([id_jugador, id_concepto, mes, anio])
+  @@index([id_jugador])
+  @@index([mes, anio])
+  @@index([pagado])
+  @@map("cuotas_mensuales_detalle")
+}
+
+// =====================================================
+// 5. TABLA DE FORMAS DE PAGO
+// =====================================================
+model FormaPago {
+  id_forma_pago           Int                      @id @default(autoincrement())
+  nombre_forma            String                   @unique
+  descripcion             String?
+  activa                  Boolean                  @default(true)
+  fecha_creacion          DateTime                 @default(now())
+
+  // Relaciones
+  ingresos                Ingreso[]
+
+  @@index([nombre_forma])
+  @@map("formas_pago")
+}
+
+// =====================================================
+// 6. TABLA DE INGRESOS/PAGOS (Transacciones)
+// =====================================================
+model Ingreso {
+  id_ingreso              Int                      @id @default(autoincrement())
+  id_jugador              Int
+  concepto                String
+  mes_deuda               Int                      @default(0)
+  fecha_pago              DateTime
+  id_forma_pago           Int
+  divisas                 Decimal?
+  tasa_cambio             Decimal?
+  monto_bsf               Decimal?
+  monto_usd               Decimal?
+  referencia              String?
+  notas                   String?
+  fecha_registro          DateTime                 @default(now())
+
+  // Relaciones
+  jugador                 Jugador                  @relation(fields: [id_jugador], references: [id_jugador], onDelete: Cascade)
+  forma_pago              FormaPago                @relation(fields: [id_forma_pago], references: [id_forma_pago])
+
+  @@index([id_jugador])
+  @@index([fecha_pago])
+  @@index([referencia])
+  @@index([id_forma_pago])
+  @@map("ingresos")
+}
